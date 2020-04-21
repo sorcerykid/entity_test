@@ -343,7 +343,7 @@ end
 
 -------------------------------------
 
-minetest.register_entity( "extend_entity:avatar",{
+minetest.register_entity( "entity_test:avatar",{
 	hp_max = 1,
 	physical = true,
 	static_save = true,
@@ -415,7 +415,7 @@ minetest.register_entity( "extend_entity:avatar",{
 minetest.register_chatcommand( "add", {
 	func = function( name, param )
 		player = minetest.get_player_by_name( name )
-		avatar = minetest.add_entity( { x = 0, y = 5, z = 0 }, "extend_entity:avatar" )
+		avatar = minetest.add_entity( { x = 0, y = 5, z = 0 }, "entity_test:avatar" )
 
 		avatar:set_properties( entity_props[ param ] or entity_props.reindeer )
 		if not player_huds then
@@ -446,7 +446,7 @@ minetest.register_chatcommand( "cmd", {
 			if is_running then
 				return false, "[Avatar] The script is still running."
 			elseif param == "" then
-				minetest.show_formspec( name, "extend_entity:editor", get_formspec( preset_list[ 1 ] ) )
+				minetest.show_formspec( name, "entity_test:editor", get_formspec( preset_list[ 1 ] ) )
 				return true
 			else
 				return execute( param )
@@ -467,13 +467,13 @@ minetest.register_chatcommand( "lag", {
 minetest.register_on_player_receive_fields( function( player, formname, fields )
         local name = player:get_player_name( )
 
-        if formname ~= "extend_entity:editor" then return end
+        if formname ~= "entity_test:editor" then return end
 
 	if fields.run then
 		execute_script( string.split( sanitize( fields.script ), "\n" ) )
 	elseif fields.presets then
 		local idx = table.indexof( preset_list, fields.presets )
-		minetest.show_formspec( name, "extend_entity:editor", get_formspec( preset_list[ idx ] ) )
+		minetest.show_formspec( name, "entity_test:editor", get_formspec( preset_list[ idx ] ) )
 	end
 end )
 
