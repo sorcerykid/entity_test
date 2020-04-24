@@ -134,6 +134,7 @@ local player = nil
 local avatar = nil
 local player_huds = nil
 local script = nil
+local async_expr = nil
 
 -------------------------------------
 
@@ -359,30 +360,43 @@ minetest.register_entity( "entity_test:avatar",{
 		local obj = self.object
 
 		if avatar == obj then
+			if async_expr then
+				execute( async_expr )
+				async_expr = nil
+			end
+
 			if is_lagging then
 				if math.random( 10 ) == 1 then
 					-- Stall process for 0.3 secs
 					local t = os.clock( )
-					while os.clock( ) - t <= 0.3 do end
+					while os.clock( ) - t <= 1.6 do end
 				end
 			end
 
 			update_hud( 4, "pos:\n%s\n\nrot:\n%s\n\nnew_vel:\n%s\n\nold_vel:\n%s",
 				pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ) )
-			update_hud( 5, "is_standing:\n%s\n\nis_swimming:\n%s\n\nis_climbing:\n%s\n\ncollides_xz\n%s\n\ncollides_y\n%s",
-				tostring( res.is_standing ), tostring( res.is_swimming ), tostring( res.is_climbing ),
-				tostring( res.collides_xz ), tostring( res.collides_y ) )
-			update_hud( 6, "touched_objects:\n%s", join( res.touched_objects, "\n", function ( i, v )
-					return ( v and "player" or "entity" ) .. " @ " .. pos_to_str( v:get_pos( ) )
-				end ) )
-			update_hud( 7, "collisions:\n%s", join( res.collisions, "\n", function ( i, v )
-					return minetest.get_node( v ).name .. " @ " .. pos_to_str( v, true )
-				end ) )
+
+			if res then
+				update_hud( 5, "is_standing:\n%s\n\nis_swimming:\n%s\n\nis_climbing:\n%s\n\ncollides_xz\n%s\n\ncollides_y\n%s",
+					tostring( res.is_standing ), tostring( res.is_swimming ), tostring( res.is_climbing ),
+					tostring( res.collides_xz ), tostring( res.collides_y ) )
+				update_hud( 6, "touched_objects:\n%s", join( res.touched_objects, "\n", function ( i, v )
+						return ( v and "player" or "entity" ) .. " @ " .. pos_to_str( v:get_pos( ) )
+					end ) )
+				update_hud( 7, "collisions:\n%s", join( res.collisions, "\n", function ( i, v )
+						return minetest.get_node( v ).name .. " @ " .. pos_to_str( v, true )
+					end ) )
+			end
 		end
 
-		print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s, col_xz=%s, col_y=%s",
-			self.id, pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ),
-			tostring( res.collides_xz ), tostring( res.collides_y ) ) )
+		if res then
+			print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s, col_xz=%s, col_y=%s",
+				self.id, pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ),
+				tostring( res.collides_xz ), tostring( res.collides_y ) ) )
+		else
+			print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s",
+				self.id, pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ) ) )
+		end
 	end,
 
 	on_activate = function ( self, staticdata, dtime, id )
@@ -448,6 +462,9 @@ minetest.register_chatcommand( "cmd", {
 			elseif param == "" then
 				minetest.show_formspec( name, "entity_test:editor", get_formspec( preset_list[ 1 ] ) )
 				return true
+			elseif string.find( param, "^@" ) then
+				async_expr = string.sub( param, 2 )
+				return true, "[Avatar] Performing asynchronous execution."
 			else
 				return execute( param )
 			end

@@ -1,11 +1,12 @@
-Extended Motion Mechanics for LuaEntitySAOs
+Entity Test Mod
+By Leslie Krause
 ----------------------------------------------
 
 I developed this mod for interactively testing additional API methods and callbacks for 
 LuaEntitySAOs. I recommend using it with the Minimal Development Test, since it expects a 
 singlenode mapgen.
 
-In order to use this mod, you will need to compile Minetest with the folloing patch:
+In order to use this mod, you will need to compile Minetest with the following patch:
 https://github.com/sorcerykid/minetest/tree/extend-entity-api
 
 After joining the game, type `/add` into chat to spawn a new entity. Then type `/cmd` to 
@@ -22,6 +23,10 @@ Statements in a script can be one of the following:
 
 Alternatively, you can call an ObjectRef method directly by typing `/cmd <expr>` into chat.
 
+To defer execution of a method until the `on_step()` callback, simply prepend <expr> with
+an ampersand as in `/cmd @set_velocity(vec(1,0,1))`. This can prove useful for testing the
+possibility of side-effects that may not be revealed otherwise.
+
 All test scripts are executed within a sandbox so that most errors can be trapped without 
 crashing Minetest. Several global variables are provided for convenience when testing:
 
@@ -37,7 +42,7 @@ crashing Minetest. Several global variables are provided for convenience when te
  * `rad60` = math.pi / 3,
  * `rad45` = math.pi / 4,
  * `rad30` = math.pi / 6,
- * `rad20` = math.pi / 9, 
+ * `rad20` = math.pi / 9,
 
 If you have spawned multiple entities, then you can select which entity to monitor and 
 control either by punching it or typing `/sel` and the respective object ID. To despawn an 
