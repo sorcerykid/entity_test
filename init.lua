@@ -7,16 +7,14 @@ local entity_props = {
 		textures = { "mobs_paniki.png" },
 		mesh = "paniki.b3d",
 		yaw_origin = -math.pi / 2,
-		enable_swimming = false,
-		enable_climbing = false,
+		stepheight = 0.6,
 	},
 	reindeer = {
 		collisionbox = { -0.3, -0.1, -0.3, 0.3, 1.4, 0.3 },
 		textures = { "mobs_reindeer.png" },
 		mesh = "reindeer.b3d",
 		yaw_origin = 0,
-		enable_swimming = true,
-		enable_climbing = true,
+		stepheight = 0.6,
 	},
 }
 
@@ -201,8 +199,8 @@ local function create_hud( )
 		player:hud_add( {
 			hud_elem_type = "image",
 			text = "default_cloud.png^[colorize:#006666BB",
-	       		scale = { x = -40, y = -15 },
-			position = { x = 0.30, y = 0.70 },
+	       		scale = { x = -70, y = -15 },
+			position = { x = 0.25, y = 0.70 },
 			alignment = { x = 1, y = 1 },
 		} ),
 
@@ -218,7 +216,7 @@ local function create_hud( )
 			offset = { x = 8, y = 8 }
 		} ),
 		player:hud_add( {
-			-- collides_xz, collides_y, is_standing, is_swimming, is_climbing
+			-- collides_xz, collides_y, standing
 			hud_elem_type = "text",
 			text = "",
 			position = { x = 0.05, y = 0.56 },
@@ -231,7 +229,7 @@ local function create_hud( )
 			-- touched_objects
 			hud_elem_type = "text",
 			text = "",
-			position = { x = 0.30, y = 0.70 },
+			position = { x = 0.25, y = 0.70 },
 			scale = { x = -15, y = -15 },
 			number = 0xFFFFFF,
 			alignment = { x = 1, y = 1 },
@@ -241,7 +239,7 @@ local function create_hud( )
 			-- collisions
 			hud_elem_type = "text",
 			text = "",
-			position = { x = 0.50, y = 0.70 },
+			position = { x = 0.55, y = 0.70 },
 			scale = { x = -15, y = -15 },
 			number = 0xFFFFFF,
 			alignment = { x = 1, y = 1 },
@@ -362,7 +360,7 @@ minetest.register_entity( "entity_test:avatar",{
 		if avatar == obj then
 			if async_expr then
 				execute( async_expr )
-				async_expr = nil
+--				async_expr = nil
 			end
 
 			if is_lagging then
@@ -376,40 +374,51 @@ minetest.register_entity( "entity_test:avatar",{
 			update_hud( 4, "pos:\n%s\n\nrot:\n%s\n\nnew_vel:\n%s\n\nold_vel:\n%s",
 				pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ) )
 
-			if res then
-				update_hud( 5, "is_standing:\n%s\n\nis_swimming:\n%s\n\nis_climbing:\n%s\n\ncollides_xz\n%s\n\ncollides_y\n%s",
-					tostring( res.is_standing ), tostring( res.is_swimming ), tostring( res.is_climbing ),
-					tostring( res.collides_xz ), tostring( res.collides_y ) )
+			if type( res ) == "table" then
+				update_hud( 5, "standing:\n%s\n\ncollides_xz\n%s\n\ncollides_y\n%s\n\nsteps_up\n%s",
+					tostring( res.standing ), tostring( res.collides_xz ), tostring( res.collides_y ),
+					tostring( res.steps_up ) )
 				update_hud( 6, "touched_objects:\n%s", join( res.touched_objects, "\n", function ( i, v )
-						return ( v and "player" or "entity" ) .. " @ " .. pos_to_str( v:get_pos( ) )
+						return ( v:is_player( ) and "PlayerSAO " or "LuaEntitySAO " ) .. tostring( v )
 					end ) )
 				update_hud( 7, "collisions:\n%s", join( res.collisions, "\n", function ( i, v )
-						return minetest.get_node( v ).name .. " @ " .. pos_to_str( v, true )
+						return minetest.get_node( v.node_pos ).name .. "\n" ..
+						"{ node_pos=" .. pos_to_str( v.node_pos, true ) ..
+						", side=" .. pos_to_str( v.side, true ) ..
+						", is_impact=" .. ( v.is_impact and "true" or "false" ) .. " }"
 					end ) )
 			end
 		end
 
-		if res then
-			print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s, col_xz=%s, col_y=%s",
+		if type( res ) == "table" then
+			print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s, col_xz=%s, col_y=%s, step=%s",
 				self.id, pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ),
-				tostring( res.collides_xz ), tostring( res.collides_y ) ) )
+				tostring( res.collides_xz ), tostring( res.collides_y ), tostring( res.steps_up ) ) )
 		else
-			print( string.format( "[%d] pos=%s rot=%s new_vel=%s old_vel=%s",
-				self.id, pos_to_str( pos ), rot_to_str( rot ), pos_to_str( new_vel ), pos_to_str( old_vel ) ) )
+			print( string.format( "[%d] pos=%s yaw=%s new_vel=%s old_vel=%s",
+				self.id, pos_to_str( pos ), yaw_to_str( yaw ), pos_to_str( new_vel ), pos_to_str( old_vel ) ) )
 		end
 	end,
 
 	on_activate = function ( self, staticdata, dtime, id )
 		printf( "[Avatar] on_activate( ): dtime=%0.1f, id=%d", dtime, id )
 		self.id = id
+
+		if dtime > 0 then
+			self.object:remove( )
+		end
 	end,
 
 	on_deactivate = function ( self, id )
 		printf( "[Avatar] on_deactivate( ): id=%d", id )
 		if avatar == self.object then
-			for i, v in ipairs( player_huds ) do
-				player:hud_remove( v )
-				player_huds = nil
+			if player_huds then
+				for i, v in ipairs( player_huds ) do
+					player:hud_remove( v )
+					player_huds = nil
+				end
+			else
+				print( "missing hud!" )
 			end
 			avatar = nil
 			printf( "[Avatar] Deselected object id " .. self.id .. "." )
@@ -428,7 +437,6 @@ minetest.register_entity( "entity_test:avatar",{
 
 minetest.register_chatcommand( "add", {
 	func = function( name, param )
-		player = minetest.get_player_by_name( name )
 		avatar = minetest.add_entity( { x = 0, y = 5, z = 0 }, "entity_test:avatar" )
 
 		avatar:set_properties( entity_props[ param ] or entity_props.reindeer )
@@ -436,7 +444,7 @@ minetest.register_chatcommand( "add", {
 			create_hud( )
 		end
 
-		return true, "[Avatar] Selected object id " .. avatar:get_luaentity( ).id .. "."
+--		return true, "[Avatar] Selected object id " .. avatar:get_luaentity( ).id .. "."
 	end
 } )
 
@@ -533,9 +541,12 @@ local function construct_spawn( )
 	for x = -2, 2 do
 		minetest.set_node( { x = x, y = 2, z = 0 }, { name = "default:ladder", param2 = 1 } )
 	end
+
+	minetest.set_node( { x = 0, y = 2, z = -4 }, { name = "stairs:slab_cobble" } )
 end
 
-minetest.register_on_joinplayer( function( )
+minetest.register_on_joinplayer( function( new_player )
+	player = new_player
 	minetest.after( 0.5, construct_spawn )
 end )
 
